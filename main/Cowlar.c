@@ -49,9 +49,6 @@ static int s_route_table_size = 0;
 static SemaphoreHandle_t s_route_table_lock = NULL;
 static uint8_t s_mesh_tx_payload[CONFIG_MESH_ROUTE_TABLE_SIZE*6+1];
 
-static uint8_t tx_buf[TX_SIZE] = { 0, };
-static uint8_t rx_buf[RX_SIZE] = { 0, };
-static bool is_mesh_connected = false;
 int node_route_table_size = 1;
 /*******************************************************
  *                Function Declarations
@@ -93,34 +90,11 @@ void static recv_cb(mesh_addr_t *from, mesh_data_t *data)
     }
 }
 
-void print_routing_table() {
-    mesh_addr_t route_table[CONFIG_MESH_ROUTE_TABLE_SIZE];
-    int route_table_size = 0;
-
-    // Get the parent node's address
-    mesh_addr_t parent_addr;
-    esp_mesh_get_parent_bssid(&parent_addr);
-
-    // Print the parent node's address
-    printf("Parent node: "MACSTR"\n", MAC2STR(parent_addr.addr));
-
-    // Get the routing table
-    esp_mesh_get_routing_table(route_table, CONFIG_MESH_ROUTE_TABLE_SIZE * 6, &route_table_size);
-
-    // Print the routing table
-    printf("Node Routing table:\n");
-    for (int i = 0; i < route_table_size; i++) {
-        printf("Node %d: "MACSTR"\n", i, MAC2STR(route_table[i].addr));
-    }
-}
 
 mesh_addr_t* get_routing_table() {
     static mesh_addr_t route_table[CONFIG_MESH_ROUTE_TABLE_SIZE + 1]; // +1 for the parent node's address
-    
-
-    // Get the parent node's address
+   // Get the parent node's address
     esp_mesh_get_parent_bssid(&route_table[0]); // Store the parent node's address at the top index
-
     // Get the routing table
     esp_mesh_get_routing_table(&route_table[1], CONFIG_MESH_ROUTE_TABLE_SIZE * 6, &node_route_table_size); // Start storing at index 1
 
@@ -139,6 +113,11 @@ esp_err_t send_data_to_node(mesh_addr_t *to, const char *data_str) {
     printf("Sending data to node\n");
     esp_err_t err = esp_mesh_send(to, &data, MESH_DATA_P2P, NULL, 0);
     return err;
+}
+
+esp_err_t get_current_node_address(uint8_t* mac) {
+    // Get the MAC address of the station interface
+    return esp_wifi_get_mac(WIFI_IF_STA, mac);
 }
 
 void print_node_info() {
@@ -176,77 +155,96 @@ void print_node_info() {
     }
 }
 
+esp_err_t send_routing_table_to_nodes() {
+    mesh_data_t data;
+    esp_err_t err;
+    mesh_addr_t route_table[CONFIG_MESH_ROUTE_TABLE_SIZE];
+    int route_table_size = 0;
+
+    // Get the routing table
+    esp_mesh_get_routing_table(route_table, CONFIG_MESH_ROUTE_TABLE_SIZE * 6, &route_table_size);
+
+    // Prepare the data to be sent
+    data.size = route_table_size * 6 + 1;
+    data.proto = MESH_PROTO_BIN;
+    data.tos = MESH_TOS_P2P;
+    uint8_t payload[route_table_size * 6 + 1];
+    payload[0] = CMD_ROUTE_TABLE;
+    memcpy(payload + 1, route_table, route_table_size * 6);
+    data.data = payload;
+
+    // Send the routing table to all nodes in the network
+    for (int i = 0; i < route_table_size; i++) {
+        err = esp_mesh_send(&route_table[i], &data, MESH_DATA_P2P, NULL, 0);
+        if (err != ESP_OK) {
+            printf("Failed to send routing table to node %d: %d\n", i, err);
+            return err;
+        }
+    }
+
+    return ESP_OK;
+}
+
 void esp_mesh_mqtt_task(void *arg)
 {
 
     is_running = true;
-    char *print;
-    mesh_data_t data;
     esp_err_t err;
     mqtt_app_start();
     int count = 0;
     int rcount = 0;
+    uint8_t current_node_mac[6]; // Buffer to hold the MAC address
+    char addr_str[18]; // Buffer to hold the string representation of the address
     char count_str[50]; // Buffer to hold count string
     while (is_running) {
-        asprintf(&print, "layer:%d IP:" IPSTR, esp_mesh_get_layer(), IP2STR(&s_current_ip));
-        ESP_LOGI(MESH_TAG, "Tried to publish %s", print);
-        mqtt_app_publish("/topic/ip_mesh", print);
-        free(print);
+        
         if (esp_mesh_is_root()) {
-            printf("I am root\n");
-            esp_mesh_get_routing_table((mesh_addr_t *) &s_route_table,
-                                       CONFIG_MESH_ROUTE_TABLE_SIZE * 6, &s_route_table_size);
-            data.size = s_route_table_size * 6 + 1;
-            data.proto = MESH_PROTO_BIN;
-            data.tos = MESH_TOS_P2P;
-            s_mesh_tx_payload[0] = CMD_ROUTE_TABLE;
-            memcpy(s_mesh_tx_payload + 1, s_route_table, s_route_table_size*6);
-            data.data = s_mesh_tx_payload;
-            for (int i = 0; i < s_route_table_size; i++) {
-                err = esp_mesh_send(&s_route_table[i], &data, MESH_DATA_P2P, NULL, 0);
-                ESP_LOGI(MESH_TAG, "Sending routing table to [%d] "
-                        MACSTR ": sent with err code: %d", i, MAC2STR(s_route_table[i].addr), err);
+            print_node_info();
+            err = send_routing_table_to_nodes();
+            if (err != ESP_OK) {
+                printf("Failed to send routing table: %d\n", err);
             }
             sprintf(count_str, "Root count %d", rcount++); // Convert count to string
 
-                esp_err_t err = send_data_to_node(&s_route_table[1], count_str);
+                err = send_data_to_node(&s_route_table[1], count_str);
                 if (err != ESP_OK) {
                     printf("Failed to send data: %d\n", err);
                 }
 
-                print_node_info();
-                mesh_addr_t *route_table = get_routing_table();
-                for (int i = 0; i < node_route_table_size + 1; i++) {
-                        printf("Root Routing table [%d] " MACSTR "\n", i, MAC2STR(route_table[i].addr));
-                    }
-        }
-        else {
-                printf("I am not root\n");
-                // for (int i = 0; i < s_route_table_size; i++) {
-                //     ESP_LOGI(MESH_TAG, "my Routing table [%d] " MACSTR, i, MAC2STR(s_route_table[i].addr));
-                // } 
-                //print_routing_table();
-                print_node_info();
+                // Publish count data to MQTT
+                
+                get_current_node_address(current_node_mac); // Get the MAC address of the node
+
+                
+                sprintf(addr_str, MACSTR, MAC2STR(current_node_mac)); // Convert the address to a string
+                sprintf(count_str, "count %d from node: %s", rcount, addr_str); // Include the address in the count string
+                // Publish count data to MQTT
+                mqtt_app_publish("Root_data", count_str);
+
+                
                 // mesh_addr_t *route_table = get_routing_table();
                 // for (int i = 0; i < node_route_table_size + 1; i++) {
-                //         printf("Node Routing table [%d] " MACSTR "\n", i, MAC2STR(route_table[i].addr));
+                //         printf("Root Routing table [%d] " MACSTR "\n", i, MAC2STR(route_table[i].addr));
                 //     }
-
+        }
+        else {
+                print_node_info();
+                
                 sprintf(count_str, "Node count %d", count++); // Convert count to string
 
-                esp_err_t err = send_data_to_node(&mesh_parent_addr, count_str);
+                err = send_data_to_node(&mesh_parent_addr, count_str);
                 if (err != ESP_OK) {
                     printf("Failed to send data: %d\n", err);
-}
+                }
                 
                 uint8_t current_node_mac[6]; // Buffer to hold the MAC address
-                esp_wifi_get_mac(ESP_IF_WIFI_STA, current_node_mac); // Get the MAC address of the current node
+                get_current_node_address(current_node_mac); // Get the MAC address of the node
 
-                char addr_str[18]; // Buffer to hold the string representation of the address
+                
                 sprintf(addr_str, MACSTR, MAC2STR(current_node_mac)); // Convert the address to a string
                 sprintf(count_str, "count %d from node: %s", count, addr_str); // Include the address in the count string
                 // Publish count data to MQTT
-                mqtt_app_publish("node_data", count_str);
+                mqtt_app_publish("Node_data", count_str);
             }
         vTaskDelay(2 * 1000 / portTICK_PERIOD_MS);
     }
