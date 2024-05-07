@@ -462,9 +462,9 @@ void ip_event_handler(void *arg, esp_event_base_t event_base,
 }
 
 
-void app_main(void)
+void initilize_mest_mqtt(void)
 {
-    ESP_ERROR_CHECK(nvs_flash_init());
+   ESP_ERROR_CHECK(nvs_flash_init());
     /*  tcpip initialization */
     ESP_ERROR_CHECK(esp_netif_init());
     /*  event initialization */
@@ -506,4 +506,12 @@ void app_main(void)
     ESP_LOGI(MESH_TAG, "mesh starts successfully, heap:%" PRId32 ", %s\n",  esp_get_free_heap_size(),
              esp_mesh_is_root_fixed() ? "root fixed" : "root not fixed");
     printf("main ended\n");
+}
+
+
+void app_main(void)
+{    
+    initilize_mest_mqtt();
+    printf("main ended\n");
+    
 }
