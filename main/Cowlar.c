@@ -263,6 +263,7 @@ void esp_mesh_mqtt_task(void *arg)
 
         is_comm_mqtt_task_started = true;
     }
+    printf("Task started\n");
     return ESP_OK;
 }
 
@@ -504,4 +505,5 @@ void app_main(void)
     ESP_ERROR_CHECK(esp_mesh_start());
     ESP_LOGI(MESH_TAG, "mesh starts successfully, heap:%" PRId32 ", %s\n",  esp_get_free_heap_size(),
              esp_mesh_is_root_fixed() ? "root fixed" : "root not fixed");
+    printf("main ended\n");
 }
