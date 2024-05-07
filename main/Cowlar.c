@@ -141,8 +141,44 @@ esp_err_t send_data_to_node(mesh_addr_t *to, const char *data_str) {
     return err;
 }
 
+void print_node_info() {
+    // Get and print the layer of the node
+    int layer = esp_mesh_get_layer();
+    printf("Node layer: %d\n", layer);
+
+    // Check if the node is a root node
+    bool is_root = esp_mesh_is_root();
+    printf("Is root: %s\n", is_root ? "Yes" : "No");
+
+    // Get and print the parent node's address
+    mesh_addr_t parent_addr;
+    esp_mesh_get_parent_bssid(&parent_addr);
+    printf("Parent node: " MACSTR "\n", MAC2STR(parent_addr.addr));
+
+    // Get and print the IP address of the node
+    esp_netif_ip_info_t ip_info;
+    esp_netif_t *netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+    if (esp_netif_get_ip_info(netif, &ip_info) == ESP_OK) {
+        printf("Node IP: " IPSTR "\n", IP2STR(&ip_info.ip));
+    }
+
+    // Get and print the routing table
+    mesh_addr_t route_table[CONFIG_MESH_ROUTE_TABLE_SIZE];
+    int route_table_size = 0;
+    esp_mesh_get_routing_table(route_table, CONFIG_MESH_ROUTE_TABLE_SIZE * 6, &route_table_size);
+    printf("Connected child nodes: %d\n", route_table_size-1);
+
+    if(is_root){printf("Root Node address %d: " MACSTR "\n",0, MAC2STR(route_table[0].addr));}
+    else{printf("Current Node address %d: " MACSTR "\n", 0, MAC2STR(route_table[0].addr));}
+
+    for (int i = 1; i < route_table_size; i++) {
+        printf("Child node address %d: " MACSTR "\n", i, MAC2STR(route_table[i].addr));
+    }
+}
+
 void esp_mesh_mqtt_task(void *arg)
 {
+
     is_running = true;
     char *print;
     mesh_data_t data;
@@ -178,6 +214,7 @@ void esp_mesh_mqtt_task(void *arg)
                     printf("Failed to send data: %d\n", err);
                 }
 
+                print_node_info();
                 mesh_addr_t *route_table = get_routing_table();
                 for (int i = 0; i < node_route_table_size + 1; i++) {
                         printf("Root Routing table [%d] " MACSTR "\n", i, MAC2STR(route_table[i].addr));
@@ -185,14 +222,15 @@ void esp_mesh_mqtt_task(void *arg)
         }
         else {
                 printf("I am not root\n");
-                for (int i = 0; i < s_route_table_size; i++) {
-                    ESP_LOGI(MESH_TAG, "my Routing table [%d] " MACSTR, i, MAC2STR(s_route_table[i].addr));
-                } 
+                // for (int i = 0; i < s_route_table_size; i++) {
+                //     ESP_LOGI(MESH_TAG, "my Routing table [%d] " MACSTR, i, MAC2STR(s_route_table[i].addr));
+                // } 
                 //print_routing_table();
-                mesh_addr_t *route_table = get_routing_table();
-                for (int i = 0; i < node_route_table_size + 1; i++) {
-                        printf("Node Routing table [%d] " MACSTR "\n", i, MAC2STR(route_table[i].addr));
-                    }
+                print_node_info();
+                // mesh_addr_t *route_table = get_routing_table();
+                // for (int i = 0; i < node_route_table_size + 1; i++) {
+                //         printf("Node Routing table [%d] " MACSTR "\n", i, MAC2STR(route_table[i].addr));
+                //     }
 
                 sprintf(count_str, "Node count %d", count++); // Convert count to string
 
