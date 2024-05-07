@@ -94,6 +94,19 @@ void static recv_cb(mesh_addr_t *from, mesh_data_t *data)
 
 
 
+esp_err_t send_data_to_node(mesh_addr_t *to, const char *data_str) {
+    mesh_data_t data;
+    data.size = strlen(data_str) + 1 + sizeof(CMD_Data); // Size is length of string plus null terminator plus size of CMD_Data
+    data.proto = MESH_PROTO_BIN;
+    data.tos = MESH_TOS_P2P;
+    s_mesh_tx_payload[0] = CMD_Data; // Include CMD_Data in the payload
+    memcpy(s_mesh_tx_payload + 1, data_str, strlen(data_str)); // Copy data string to payload
+    data.data = s_mesh_tx_payload;
+    printf("Sending data to node\n");
+    esp_err_t err = esp_mesh_send(to, &data, MESH_DATA_P2P, NULL, 0);
+    return err;
+}
+
 void esp_mesh_mqtt_task(void *arg)
 {
     is_running = true;
@@ -102,6 +115,7 @@ void esp_mesh_mqtt_task(void *arg)
     esp_err_t err;
     mqtt_app_start();
     int count = 0;
+    int rcount = 0;
     char count_str[50]; // Buffer to hold count string
     while (is_running) {
         asprintf(&print, "layer:%d IP:" IPSTR, esp_mesh_get_layer(), IP2STR(&s_current_ip));
@@ -123,6 +137,12 @@ void esp_mesh_mqtt_task(void *arg)
                 ESP_LOGI(MESH_TAG, "Sending routing table to [%d] "
                         MACSTR ": sent with err code: %d", i, MAC2STR(s_route_table[i].addr), err);
             }
+            sprintf(count_str, "Root count %d", rcount++); // Convert count to string
+
+                esp_err_t err = send_data_to_node(&s_route_table[1], count_str);
+                if (err != ESP_OK) {
+                    printf("Failed to send data: %d\n", err);
+                }
         }
         else {
                 printf("I am not root\n");
@@ -130,16 +150,12 @@ void esp_mesh_mqtt_task(void *arg)
                     ESP_LOGI(MESH_TAG, "my Routing table [%d] " MACSTR, i, MAC2STR(s_route_table[i].addr));
                 } 
 
-                sprintf(count_str, "count %d", count++); // Convert count to string
-                data.size = strlen(count_str) + 1 + sizeof(CMD_Data); // Size is length of string plus null terminator plus size of CMD_Data
-                data.proto = MESH_PROTO_BIN;
-                data.tos = MESH_TOS_P2P;
-                s_mesh_tx_payload[0] = CMD_Data; // Include CMD_Data in the payload
-                memcpy(s_mesh_tx_payload + 1, count_str, strlen(count_str)); // Copy count string to payload
-                data.data = s_mesh_tx_payload;
-                printf("data sent to parent node\n");
-                esp_err_t err = esp_mesh_send(&mesh_parent_addr, &data, MESH_DATA_P2P, NULL, 0);
-                ESP_LOGI(MESH_TAG, "Sending %s and CMD_Data to " MACSTR ": sent with err code: %d", count_str, MAC2STR(mesh_parent_addr.addr), err);
+                sprintf(count_str, "Node count %d", count++); // Convert count to string
+
+                esp_err_t err = send_data_to_node(&mesh_parent_addr, count_str);
+                if (err != ESP_OK) {
+                    printf("Failed to send data: %d\n", err);
+}
                 
                 uint8_t current_node_mac[6]; // Buffer to hold the MAC address
                 esp_wifi_get_mac(ESP_IF_WIFI_STA, current_node_mac); // Get the MAC address of the current node
