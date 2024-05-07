@@ -1,0 +1,28 @@
+# VSCode
+.vscode/
+
+.pio
+cmake-build-debug
+cmake-build-release
+
+# Build
+build/
+sdkconfig.old
+platformio.ini
+esp_unit_tests/build/*
+
+*.bak
+*.tmp
+*.log
+temp/
+
+# Eclipse
+.settings/
+
+
+
+# Documentation
+doc/
+
+# keys (not alowed by gitlab)
+# *.pem
