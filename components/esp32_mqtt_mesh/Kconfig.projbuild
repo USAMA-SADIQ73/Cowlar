@@ -1,4 +1,4 @@
-menu "Example Configuration"
+menu "MQTT MESH Configuration"
 
     config MESH_CHANNEL
         int "channel"
