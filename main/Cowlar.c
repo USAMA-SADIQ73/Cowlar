@@ -230,6 +230,7 @@ void esp_mesh_mqtt_task(void *arg)
         else {
                 print_node_info();
                 
+                
                 sprintf(count_str, "Node count %d", count++); // Convert count to string
 
                 err = send_data_to_node(&mesh_parent_addr, count_str);
