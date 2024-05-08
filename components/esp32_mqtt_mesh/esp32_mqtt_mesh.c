@@ -112,7 +112,6 @@ esp_err_t send_data_to_node(mesh_addr_t *to, const char *data_str) {
     s_mesh_tx_payload[0] = CMD_Data; // Include CMD_Data in the payload
     memcpy(s_mesh_tx_payload + 1, data_str, strlen(data_str)); // Copy data string to payload
     data.data = s_mesh_tx_payload;
-    printf("Sending data to node\n");
     esp_err_t err = esp_mesh_send(to, &data, MESH_DATA_P2P, NULL, 0);
     return err;
 }
@@ -176,7 +175,7 @@ esp_err_t send_routing_table_to_nodes() {
     data.data = payload;
 
     // Send the routing table to all nodes in the network
-    for (int i = 0; i < route_table_size; i++) {
+    for (int i = 1; i < route_table_size; i++) {
         err = esp_mesh_send(&route_table[i], &data, MESH_DATA_P2P, NULL, 0);
         if (err != ESP_OK) {
             printf("Failed to send routing table to node %d: %d\n", i, err);
@@ -202,16 +201,25 @@ void esp_mesh_mqtt_task(void *arg)
         
         if (esp_mesh_is_root()) {
             print_node_info();
-            // err = send_routing_table_to_nodes();
-            // if (err != ESP_OK) {
-            //     printf("Failed to send routing table: %d\n", err);
-            // }
+            err = send_routing_table_to_nodes();
+            if (err != ESP_OK) {
+                printf("Failed to send routing table: %d\n", err);
+            }
             sprintf(count_str, "Root count %d", rcount++); // Convert count to string
-
-                err = send_data_to_node(&s_route_table[1], count_str);
-                if (err != ESP_OK) {
-                    printf("Failed to send data: %d\n", err);
-                }
+                
+                mesh_addr_t *route_table = get_routing_table();
+               //  for (int i = 0; i < node_route_table_size + 1; i++) {
+                       // printf("Root Routing table [%d] " MACSTR "\n", i, MAC2STR(route_table[i].addr));
+                        
+                        err = send_data_to_node(&route_table[2], count_str);
+                        if (err != ESP_OK) {
+                            printf("Failed to send data: %d\n", err);
+                        }
+                        else {
+                            printf("Data Send to" MACSTR "\n", MAC2STR(route_table[2].addr));
+                        }
+                  //  }
+                
 
                 // Publish count data to MQTT
                 
