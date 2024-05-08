@@ -14,7 +14,7 @@
 #include "esp_mac.h"
 #include "esp_event.h"
 #include "esp_log.h"
-#include "esp_mesh.h"
+
 #include "nvs_flash.h"
 #include "mesh_netif.h"
 #include "freertos/semphr.h"
@@ -103,6 +103,9 @@ mesh_addr_t* get_routing_table() {
     return route_table;
 }
 
+int NodeRoutingTableSize(){
+    return node_route_table_size;
+}
 
 esp_err_t send_data_to_node(mesh_addr_t *to, const char *data_str) {
     mesh_data_t data;
@@ -262,7 +265,10 @@ void esp_mesh_mqtt_task(void *arg)
     vTaskDelete(NULL);
 }
 
-    esp_err_t esp_mesh_comm_mqtt_task_start(void)
+
+
+
+esp_err_t esp_mesh_comm_mqtt_task_start(void)
 {
     static bool is_comm_mqtt_task_started = false;
 

@@ -14,11 +14,12 @@ void app_main(void)
 {    
     initilize_mest_mqtt();
     printf("main ended\n");
-    // while(1)
-    // {
-    //     printf("main loop\n");
-    //     vTaskDelay(1000 / portTICK_PERIOD_MS);
-    // }
+    
+    while(1)
+    {
+        printf("main loop\n");
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
 
     
 }
