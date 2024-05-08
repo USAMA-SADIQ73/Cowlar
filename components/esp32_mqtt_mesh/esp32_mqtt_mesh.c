@@ -18,6 +18,7 @@
 #include "nvs_flash.h"
 #include "mesh_netif.h"
 #include "freertos/semphr.h"
+#include "freertos/timers.h"
 #include "sdkconfig.h"
 /*******************************************************
  *                Macros
