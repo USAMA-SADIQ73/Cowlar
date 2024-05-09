@@ -26,6 +26,7 @@ void mqtt_mesh_node_tasks(void *pvParameters)
             mqtt_app_publish("/Nodes1/",nodedata);
             printf("Node Mqtt Data send\n");
             vTaskDelay(1500 / portTICK_PERIOD_MS);
+            
         }
     }
 }
