@@ -1,7 +1,7 @@
 #include "esp_mesh.h"
 
 
-
+void mqtt_app_publish(char* topic, char *publish_string);
 
 mesh_addr_t* get_routing_table();
 

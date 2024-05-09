@@ -57,7 +57,7 @@ int node_route_table_size = 1;
  *******************************************************/
 // interaction with public mqtt broker
 void mqtt_app_start(void);
-void mqtt_app_publish(char* topic, char *publish_string);
+
 
 /*******************************************************
  *                Function Definitions
