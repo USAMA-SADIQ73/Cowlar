@@ -1,11 +1,4 @@
-/* Mesh IP Internal Networking Example
 
-   This example code is in the Public Domain (or CC0 licensed, at your option.)
-
-   Unless required by applicable law or agreed to in writing, this
-   software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY KIND, either express or implied.
-*/
 #include <string.h>
 #include "esp_log.h"
 #include "esp_system.h"
@@ -71,7 +64,7 @@ void mqtt_app_publish(char* topic, char *publish_string)
 void mqtt_app_start(void)
 {
     esp_mqtt_client_config_t mqtt_cfg = {
-            .broker.address.uri = "mqtt://192.168.101.3:1883",
+            .broker.address.uri = CONFIG_BROKER_URL,
     };
 
     s_client = esp_mqtt_client_init(&mqtt_cfg);

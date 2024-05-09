@@ -1,13 +1,5 @@
 #include <stdio.h>
 #include "esp32_mqtt_mesh.h"
-/* Mesh Internal Communication Example
-
-   This example code is in the Public Domain (or CC0 licensed, at your option.)
-
-   Unless required by applicable law or agreed to in writing, this
-   software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY KIND, either express or implied.
-*/
 #include <string.h>
 #include <inttypes.h>
 #include "esp_wifi.h"
@@ -258,7 +250,7 @@ void esp_mesh_mqtt_task(void *arg)
                 sprintf(addr_str, MACSTR, MAC2STR(current_node_mac)); // Convert the address to a string
                 sprintf(count_str, "count %d from node: %s", count, addr_str); // Include the address in the count string
                 // Publish count data to MQTT
-                mqtt_app_publish("Node_data4", count_str);
+                mqtt_app_publish("Node_data1", count_str);
             }
         vTaskDelay(2 * 1000 / portTICK_PERIOD_MS);
     }
