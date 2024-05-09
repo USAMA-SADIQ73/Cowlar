@@ -13,7 +13,7 @@
 void app_main(void)
 {    
     initilize_mest_mqtt();
-    printf("main ended\n");
+
     
     while(1)
     {

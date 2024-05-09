@@ -71,7 +71,7 @@ void mqtt_app_publish(char* topic, char *publish_string)
 void mqtt_app_start(void)
 {
     esp_mqtt_client_config_t mqtt_cfg = {
-            .broker.address.uri = "mqtt://192.168.101.2:1883",
+            .broker.address.uri = "mqtt://192.168.101.3:1883",
     };
 
     s_client = esp_mqtt_client_init(&mqtt_cfg);
