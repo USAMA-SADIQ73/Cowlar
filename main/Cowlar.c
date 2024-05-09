@@ -23,7 +23,7 @@ void mqtt_mesh_node_tasks(void *pvParameters)
         {
             get_current_node_address(mac);
             sprintf(nodedata, "From Node %02x:%02x:%02x:%02x:%02x:%02x Hello to Mqtt broker %ld ", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], esp_random() % 100);
-            mqtt_app_publish("/Nodes/",nodedata);
+            mqtt_app_publish("/Nodes4/",nodedata);
             printf("Node Mqtt Data send\n");
             vTaskDelay(1500 / portTICK_PERIOD_MS);
         }

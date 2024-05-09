@@ -258,7 +258,7 @@ void esp_mesh_mqtt_task(void *arg)
                 sprintf(addr_str, MACSTR, MAC2STR(current_node_mac)); // Convert the address to a string
                 sprintf(count_str, "count %d from node: %s", count, addr_str); // Include the address in the count string
                 // Publish count data to MQTT
-                mqtt_app_publish("Node_data", count_str);
+                mqtt_app_publish("Node_data4", count_str);
             }
         vTaskDelay(2 * 1000 / portTICK_PERIOD_MS);
     }
